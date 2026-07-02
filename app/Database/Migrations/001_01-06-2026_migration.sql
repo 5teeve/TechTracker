@@ -8,11 +8,13 @@ CREATE TABLE marque(
     nom_marque TEXT
 );
 
-CREATE TABLE equipement(
+CREATE TABLE equipement (
     id_equipement INTEGER PRIMARY KEY AUTOINCREMENT,
-    modele TEXT,
-    prix_unitaire REAL,
-    quantite_stock INTEGER,
-    id_categorie INTEGER FOREIGN KEY REFERENCES categorie(id_categorie),
-    id_marque INTEGER FOREIGN KEY REFERENCES marque(id_marque)
+    modele TEXT NOT NULL,
+    prix_unitaire REAL NOT NULL,
+    quantite_stock INTEGER NOT NULL,
+    id_categorie INTEGER NOT NULL,
+    id_marque INTEGER NOT NULL,
+    FOREIGN KEY (id_categorie) REFERENCES categorie(id_categorie),
+    FOREIGN KEY (id_marque) REFERENCES marque(id_marque)
 );
