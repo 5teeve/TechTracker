@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\EquipementModel;
 use App\Models\CategorieModel;
 use App\Models\MarqueModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
 
 class Equipements extends BaseController
 {
@@ -15,8 +16,8 @@ class Equipements extends BaseController
     public function __construct()
     {
         $this->equipementModel = new EquipementModel();
-        $this->categorieModel  = new CategorieModel();
-        $this->marqueModel     = new MarqueModel();
+        $this->categorieModel = new CategorieModel();
+        $this->marqueModel = new MarqueModel();
     }
 
     public function index()
@@ -28,38 +29,91 @@ class Equipements extends BaseController
 
     public function new()
     {
-        $data['categories'] = $this->categorieModel->findAll();
-        $data['marques']    = $this->marqueModel->findAll();
+        $categorieModel = new CategorieModel();
+        $marqueModel = new MarqueModel();
+        $data = [
+            'titre' => 'Ajouter un nouveau materiel',
+            'action_url' => 'equipements/create',
+            'bouton_texte' => 'Enregistrer',
+            'mode_edition' => false,
+            'categories' => $categorieModel->findAll(),
+            'marques' => $marqueModel->findAll()
+        ];
 
         return view('equipements/create', $data);
     }
 
     public function create()
     {
+        $equipementModel = new EquipementModel();
         $rules = [
-            'modele'         => 'required|min_length[2]',
-            'prix_unitaire'  => 'required|decimal',
+            'modele' => 'required|min_length[2]',
+            'prix_unitaire' => 'required|decimal',
             'quantite_stock' => 'required|integer',
-            'id_categorie'   => 'required|integer',
-            'id_marque'      => 'required|integer',
+            'id_categorie' => 'required|integer',
+            'id_marque' => 'required|integer',
         ];
 
-        if (! $this->validate($rules)) {
-            $data['categories'] = $this->categorieModel->findAll();
-            $data['marques']    = $this->marqueModel->findAll();
-            $data['validation'] = $this->validator;
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+        $equipementModel->insert($this->request->getPost());
+        return redirect()->to('/')->with('succes', 'Materiel ajouté avec succes');
+    }
 
-            return view('equipements/create', $data);
+    public function edit($id)
+    {
+        $equipementModel = new EquipementModel();
+        $categorieModel = new CategorieModel();
+        $marqueModel = new MarqueModel();
+
+        $equipement = $equipementModel->find($id);
+
+        if (!$equipement) {
+            throw PageNotFoundException::forPageNotFound("Ce materiel n'existe pas");
         }
 
-        $this->equipementModel->insert([
-            'modele'         => $this->request->getPost('modele'),
-            'prix_unitaire'  => $this->request->getPost('prix_unitaire'),
-            'quantite_stock' => $this->request->getPost('quantite_stock'),
-            'id_categorie'   => $this->request->getPost('id_categorie'),
-            'id_marque'      => $this->request->getPost('id_marque'),
-        ]);
+        $data = [
+            'titre' => 'Modifier le matériel : ' . $equipement['modele'],
+            'action_url' => 'equipements/update/' . $equipement['id_equipement'],
+            'bouton_texte' => 'Enregistrer les modifications',
+            'mode_edition' => true,
+            'equipement' => $equipement,
+            'categories' => $categorieModel->findAll(),
+            'marques' => $marqueModel->findAll()
+        ];
 
-        return redirect()->to('/equipements')->with('success', 'Matériel ajouté avec succès.');
+        return view('equipements/create', $data);
+    }
+
+    public function update($id)
+    {
+        $equipementModel = new EquipementModel();
+
+        $rules = [
+            'modele' => 'required',
+            'id_categorie' => 'required|integer',
+            'id_marque' => 'required|integer',
+            'prix_unitaire' => 'required|decimal',
+            'quantite_stock' => 'required|integer',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $equipementModel->update($id, $this->request->getPost());
+        return redirect()->to('/')->with('succes', 'Materiel modifier avec succes');
+    }
+
+    public function delete($id)
+    {
+        $equipementModel = new EquipementModel();
+        if ($equipementModel->find($id)) {
+            $equipementModel->delete($id);
+            return redirect()->to('/')->with('succes', 'Materiel supprimer avec succes');
+        }
+
+        return redirect()->to('/')->with('errors', ['Impossible de supprimer un élément inexistant.']);
     }
 }
